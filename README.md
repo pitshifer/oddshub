@@ -1,6 +1,6 @@
 # OddsHub
 
-OddsHub is a service for collecting, storing, and serving sports betting odds from multiple providers.
+OddsHub is a service for collecting, storing, and serving sports betting odds from providers.
 
 ## Features
 - Odds aggregation

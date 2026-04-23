@@ -9,13 +9,19 @@ services:
       - "5431:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oddshub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   oddshub:
     build:
       context: .
       dockerfile: ./docker/oddshub/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - configs/.env
     environment:

@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type Storage interface {
+	SaveOdds(ctx context.Context, provider string, odds []EventOdds) error
+	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
+}
+
 type Odds interface {
 	// GetSports(ctx context.Context) ([]Sport, error)
 	// GetLeagues(ctx context.Context, sport string) ([]Leagues, error)

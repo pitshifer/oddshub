@@ -1,0 +1,189 @@
+package postgres
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pitshifer/oddshub/internal/service"
+)
+
+type Storage struct {
+	pool *pgxpool.Pool
+}
+
+func New(ctx context.Context, connStr string) (*Storage, error) {
+	pool, err := pgxpool.New(ctx, connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	return &Storage{
+		pool: pool,
+	}, nil
+}
+
+func (s *Storage) Close() {
+	s.pool.Close()
+}
+
+func (s *Storage) SaveOdds(ctx context.Context, provider string, odds []service.EventOdds) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Upsert provider
+	var providerID int
+	err = tx.QueryRow(ctx,
+		"INSERT INTO providers (key, name) VALUES ($1, $1) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key RETURNING id",
+		provider,
+	).Scan(&providerID)
+	if err != nil {
+		return err
+	}
+
+	// Upsert events
+	var eventID int
+	for _, event := range odds {
+		err := tx.QueryRow(ctx,
+			`INSERT INTO events(external_id, provider_id, sport, home_team, away_team, start_time)
+			VALUES($1, $2, $3, $4, $5, $6)
+			ON CONFLICT(external_id, provider_id) DO UPDATE SET
+				sport = EXCLUDED.sport,
+				home_team = EXCLUDED.home_team,
+				away_team = EXCLUDED.away_team,
+				start_time = EXCLUDED.start_time
+			RETURNING id`,
+			event.EventID, providerID, event.Sport, event.HomeTeam, event.AwayTeam, event.StartTime,
+		).Scan(&eventID)
+		if err != nil {
+			return err
+		}
+
+		// Upsert bookmakers
+		var bookmakerID int
+		for _, bookmaker := range event.Bookmakers {
+			err := tx.QueryRow(ctx,
+				`INSERT INTO bookmakers (key)
+				VALUES ($1)
+				ON CONFLICT (key) DO UPDATE SET
+					key = EXCLUDED.key
+				RETURNING id`,
+				bookmaker.Name,
+			).Scan(&bookmakerID)
+			if err != nil {
+				return err
+			}
+
+			// Upsert odds
+			for _, market := range bookmaker.Markets {
+				for _, outcome := range market.Outcomes {
+					_, err := tx.Exec(ctx,
+						`INSERT INTO odds (event_id, bookmaker_id, market, outcome, price)
+						VALUES ($1, $2, $3, $4, $5)`,
+						eventID, bookmakerID, market.Type, outcome.Name, outcome.Price,
+					)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT e.external_id, e.sport, e.home_team, e.away_team, e.start_time, b.key, o.market, o.outcome, o.price
+		FROM events e
+		JOIN odds o ON e.id = o.event_id
+		JOIN bookmakers b ON o.bookmaker_id = b.id
+		WHERE e.sport = $1
+		ORDER BY e.id, b.key, o.market`,
+		sport,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []service.EventOdds
+	eventsMap := make(map[string]int)
+	bookmakerMap := make(map[string]int)
+	marketMap := make(map[string]int)
+
+	for rows.Next() {
+		var (
+			eventID                                               string
+			sport, homeTeam, awayTeam, bookmaker, market, outcome string
+			startTime                                             time.Time
+			price                                                 float64
+		)
+
+		err := rows.Scan(&eventID, &sport, &homeTeam, &awayTeam, &startTime, &bookmaker, &market, &outcome, &price)
+		if err != nil {
+			return nil, err
+		}
+
+		ei, ok := eventsMap[eventID]
+		if !ok {
+			eventOdds := service.EventOdds{
+				EventID:   eventID,
+				Sport:     sport,
+				HomeTeam:  homeTeam,
+				AwayTeam:  awayTeam,
+				StartTime: startTime,
+			}
+			result = append(result, eventOdds)
+			ei = len(result) - 1
+			eventsMap[eventID] = ei
+		}
+
+		bmKey := fmt.Sprintf("%s-%s", eventID, bookmaker)
+		bi, ok := bookmakerMap[bmKey]
+		if !ok {
+			bookmakerOdds := service.Bookmaker{
+				Name: bookmaker,
+			}
+			result[ei].Bookmakers = append(result[ei].Bookmakers, bookmakerOdds)
+			bi = len(result[ei].Bookmakers) - 1
+			bookmakerMap[bmKey] = bi
+		}
+
+		mKey := fmt.Sprintf("%s-%s", bmKey, market)
+		mi, ok := marketMap[mKey]
+		if !ok {
+			marketOdds := service.Market{
+				Type: market,
+			}
+			result[ei].Bookmakers[bi].Markets = append(result[ei].Bookmakers[bi].Markets, marketOdds)
+			mi = len(result[ei].Bookmakers[bi].Markets) - 1
+			marketMap[mKey] = mi
+		}
+
+		outcomeOdds := service.Outcome{
+			Name:  outcome,
+			Price: price,
+		}
+		result[ei].Bookmakers[bi].Markets[mi].Outcomes = append(result[ei].Bookmakers[bi].Markets[mi].Outcomes, outcomeOdds)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,13 +15,22 @@ type Storage struct {
 }
 
 func New(ctx context.Context, connStr string) (*Storage, error) {
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	var pool *pgxpool.Pool
+	var err error
+
+	for attempt := 1; attempt <= 5; attempt++ {
+		pool, err = pgxpool.New(ctx, connStr)
+		if err == nil {
+			if err = pool.Ping(ctx); err == nil {
+				break
+			}
+		}
+		log.Printf("Attempt %d: Failed to connect to database: %v", attempt, err)
+		time.Sleep(time.Duration(attempt) * 2 * time.Second)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
 	return &Storage{

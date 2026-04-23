@@ -25,6 +25,7 @@ func New(ctx context.Context, connStr string) (*Storage, error) {
 				break
 			}
 		}
+		pool.Close()
 		log.Printf("Attempt %d: Failed to connect to database: %v", attempt, err)
 		time.Sleep(time.Duration(attempt) * 2 * time.Second)
 	}

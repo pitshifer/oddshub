@@ -35,17 +35,6 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 
-	odds, err := storage.GetOdds(ctx, "soccer_epl")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, event := range odds {
-		log.Printf("%+v\n", event)
-	}
-
-	log.Printf("Retrieved %d odds from database\n", len(odds))
-
 	httpHandler := handler.New(storage)
 	router := handler.NewRouter(httpHandler)
 	if err = http.ListenAndServe(":8080", router); err != nil {

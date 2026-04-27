@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/pitshifer/oddshub/internal/cache"
+	"github.com/pitshifer/oddshub/internal/collector/theoddsapi"
 	"github.com/pitshifer/oddshub/internal/config"
 	"github.com/pitshifer/oddshub/internal/storage/postgres"
 	"github.com/pitshifer/oddshub/internal/transport/handler"
@@ -24,18 +26,14 @@ func main() {
 	}
 	defer storage.Close()
 
-	// client := theoddsapi.NewClient(config.TheOddsApiKey)
-	// odds, err := client.GetOdds(ctx, "soccer_epl")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	cache := cache.New(storage)
+	if err := cache.Warm(ctx, []string{"soccer_epl"}); err != nil {
+		log.Fatal(err)
+	}
 
-	// err = storage.SaveOdds(ctx, "theoddsapi", odds)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	client := theoddsapi.NewClient(config.TheOddsApiKey)
 
-	httpHandler := handler.New(storage)
+	httpHandler := handler.New(cache, client)
 	router := handler.NewRouter(httpHandler)
 	if err = http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)

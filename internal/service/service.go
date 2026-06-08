@@ -27,25 +27,25 @@ type Leagues struct {
 }
 
 type EventOdds struct {
-	EventID    string
-	Sport      string
-	HomeTeam   string
-	AwayTeam   string
-	StartTime  time.Time
-	Bookmakers []Bookmaker
+	EventID    string      `json:"eventId"`
+	Sport      string      `json:"sport"`
+	HomeTeam   string      `json:"homeTeam"`
+	AwayTeam   string      `json:"awayTeam"`
+	StartTime  time.Time   `json:"startTime"`
+	Bookmakers []Bookmaker `json:"bookmakers"`
 }
 
 type Bookmaker struct {
-	Name    string
-	Markets []Market
+	Name    string   `json:"name"`
+	Markets []Market `json:"markets"`
 }
 
 type Market struct {
-	Type     string
-	Outcomes []Outcome
+	Type     string    `json:"type"`
+	Outcomes []Outcome `json:"outcomes"`
 }
 
 type Outcome struct {
-	Name  string
-	Price float64
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
 }

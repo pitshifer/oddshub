@@ -1,0 +1,195 @@
+openapi: 3.0.3
+info:
+  title: OddsHub API
+  description: |
+    OddsHub собирает котировки букмекеров на спортивные события из внешних
+    провайдеров (например, the-odds-api.com), сохраняет их и отдаёт через REST API.
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Локальный сервер разработки
+
+tags:
+  - name: odds
+    description: Получение и сбор котировок по видам спорта
+
+paths:
+  /sports/{sport}/odds:
+    get:
+      tags: [odds]
+      summary: Получить сохранённые котировки по виду спорта
+      description: |
+        Возвращает список событий с котировками букмекеров, ранее
+        сохранёнными в хранилище для указанного вида спорта.
+        Если событий нет, возвращается пустой список.
+      operationId: getOdds
+      parameters:
+        - $ref: '#/components/parameters/SportKey'
+      responses:
+        '200':
+          description: Список событий с котировками
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventOdds'
+              example:
+                - eventId: "abc123"
+                  sport: "soccer_epl"
+                  homeTeam: "Arsenal"
+                  awayTeam: "Chelsea"
+                  startTime: "2026-06-15T18:00:00Z"
+                  bookmakers:
+                    - name: "pinnacle"
+                      markets:
+                        - type: "h2h"
+                          outcomes:
+                            - name: "Arsenal"
+                              price: 1.85
+                            - name: "Chelsea"
+                              price: 4.20
+                            - name: "Draw"
+                              price: 3.60
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sports/{sport}/collect:
+    post:
+      tags: [odds]
+      summary: Запустить сбор котировок у внешнего провайдера
+      description: |
+        Запрашивает свежие котировки у внешнего провайдера для указанного
+        вида спорта, сравнивает их с уже сохранёнными и записывает в
+        хранилище только изменившиеся значения.
+      operationId: collectOdds
+      parameters:
+        - $ref: '#/components/parameters/SportKey'
+      responses:
+        '200':
+          description: Сбор завершён успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                status: ok
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    SportKey:
+      name: sport
+      in: path
+      required: true
+      description: |
+        Ключ вида спорта в формате провайдера (например, "soccer_epl"
+        для английской Премьер-лиги).
+      schema:
+        type: string
+      example: soccer_epl
+
+  schemas:
+    EventOdds:
+      type: object
+      description: Спортивное событие с котировками букмекеров
+      properties:
+        eventId:
+          type: string
+          description: Идентификатор события у провайдера
+          example: "abc123"
+        sport:
+          type: string
+          description: Ключ вида спорта
+          example: "soccer_epl"
+        homeTeam:
+          type: string
+          example: "Arsenal"
+        awayTeam:
+          type: string
+          example: "Chelsea"
+        startTime:
+          type: string
+          format: date-time
+          description: Время начала события (UTC)
+          example: "2026-06-15T18:00:00Z"
+        bookmakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bookmaker'
+      required:
+        - eventId
+        - sport
+        - homeTeam
+        - awayTeam
+        - startTime
+        - bookmakers
+
+    Bookmaker:
+      type: object
+      description: Букмекер и предлагаемые им рынки
+      properties:
+        name:
+          type: string
+          description: Ключ букмекера у провайдера
+          example: "pinnacle"
+        markets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Market'
+      required:
+        - name
+        - markets
+
+    Market:
+      type: object
+      description: Рынок ставок (например, исход матча)
+      properties:
+        type:
+          type: string
+          description: Тип рынка
+          example: "h2h"
+        outcomes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Outcome'
+      required:
+        - type
+        - outcomes
+
+    Outcome:
+      type: object
+      description: Один из возможных исходов рынка с коэффициентом
+      properties:
+        name:
+          type: string
+          description: Название исхода (команда, "Draw" и т.п.)
+          example: "Arsenal"
+        price:
+          type: number
+          format: double
+          description: Десятичный коэффициент букмекера
+          example: 1.85
+      required:
+        - name
+        - price
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+      required:
+        - status
+
+  responses:
+    InternalError:
+      description: Внутренняя ошибка сервиса
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: "internal service error"

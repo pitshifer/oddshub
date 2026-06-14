@@ -133,7 +133,7 @@ func TestMapToDomain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := mapToDomain(tt.input)
+			got := mapOddsToDomain(tt.input)
 
 			// Сравниваем длину результата
 			if len(got) != len(tt.want) {

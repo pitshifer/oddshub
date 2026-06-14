@@ -93,6 +93,10 @@ func (c *Cache) SaveOdds(ctx context.Context, provider string, odds []service.Ev
 	return nil
 }
 
+func (c *Cache) SaveSports(ctx context.Context, sports []service.Sport) error {
+	return c.storage.SaveSports(ctx, sports)
+}
+
 func updateEvents(events []service.EventOdds, updated service.EventOdds) []service.EventOdds {
 	for i, e := range events {
 		if e.EventID == updated.EventID {

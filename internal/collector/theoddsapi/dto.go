@@ -17,3 +17,12 @@ type OddsResponse struct {
 		} `json:"markets"`
 	} `json:"bookmakers"`
 }
+
+type SportsResponse struct {
+	Key          string `json:"key"`
+	Title        string `json:"title"`
+	Group        string `json:"group"`
+	Description  string `json:"description"`
+	Active       bool   `json:"active"`
+	HasOutrights bool   `json:"has_outrights"`
+}

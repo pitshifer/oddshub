@@ -198,3 +198,24 @@ func (s *Storage) GetOdds(ctx context.Context, sport string) ([]service.EventOdd
 
 	return result, nil
 }
+
+func (s *Storage) SaveSports(ctx context.Context, sports []service.Sport) error {
+	for _, sport := range sports {
+		_, err := s.pool.Exec(ctx,
+			`INSERT INTO sports (key, title, group_name, description, active, has_outrights)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (key) DO UPDATE SET
+				title = EXCLUDED.title,
+				group_name = EXCLUDED.group_name,
+				description = EXCLUDED.description,
+				active = EXCLUDED.active,
+				has_outrights = EXCLUDED.has_outrights`,
+			sport.Key, sport.Title, sport.Group, sport.Description, sport.Active, sport.HasOutrights,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

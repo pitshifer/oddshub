@@ -6,7 +6,7 @@ import (
 	"github.com/pitshifer/oddshub/internal/service"
 )
 
-func mapToDomain(dto []OddsResponse) []service.EventOdds {
+func mapOddsToDomain(dto []OddsResponse) []service.EventOdds {
 	var result []service.EventOdds
 
 	for _, e := range dto {
@@ -43,6 +43,25 @@ func mapToDomain(dto []OddsResponse) []service.EventOdds {
 		}
 
 		result = append(result, event)
+	}
+
+	return result
+}
+
+func mapSportsToDomain(dto []SportsResponse) []service.Sport {
+	var result []service.Sport
+
+	for _, s := range dto {
+		sport := service.Sport{
+			Key:          s.Key,
+			Title:        s.Title,
+			Group:        s.Group,
+			Description:  s.Description,
+			Active:       s.Active,
+			HasOutrights: s.HasOutrights,
+		}
+
+		result = append(result, sport)
 	}
 
 	return result

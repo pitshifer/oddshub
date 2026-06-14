@@ -26,6 +26,31 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+func (c *Client) GetSports(ctx context.Context) ([]service.Sport, error) {
+	url := fmt.Sprintf("%s/sports?apiKey=%s", c.baseURL, c.apiKey)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad response: %d", resp.StatusCode)
+	}
+
+	var dto []SportsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
+		return nil, err
+	}
+
+	return mapSportsToDomain(dto), nil
+}
+
 func (c *Client) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
 	url := fmt.Sprintf("%s/sports/%s/odds?apiKey=%s&regions=eu&markets=h2h", c.baseURL, sport, c.apiKey)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -48,5 +73,5 @@ func (c *Client) GetOdds(ctx context.Context, sport string) ([]service.EventOdds
 		return nil, err
 	}
 
-	return mapToDomain(dto), nil
+	return mapOddsToDomain(dto), nil
 }

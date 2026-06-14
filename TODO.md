@@ -4,6 +4,10 @@
 
 ## Стоит сделать в ближайшее время
 
+- [ ] **Новый API метод** (`/v1/sports/{sport}/events`): вывод всех событий.
+
+- [ ] **API** (`/v1/sports/{sport}/events/{eventID}`): информация с котировками по конкретному событию.
+
 - [ ] **Гонка в `Cache.SaveOdds`** (`internal/cache/cache.go`): чтение `c.prices` под `RLock`, затем запись в storage, затем обновление кэша под `Lock` — классический check-then-act race. При конкурентных вызовах возможна двойная запись и рассинхронизация кэша. Нужно либо держать write-lock на весь критический участок, либо синхронизироваться по ключу события.
 - [ ] **Graceful shutdown** в `cmd/api/main.go`: сейчас `http.ListenAndServe` обрывает соединения при `SIGTERM`, и `defer storage.Close()` не выполняется. Добавить `signal.NotifyContext` + `http.Server.Shutdown(ctx)`.
 - [ ] **Тесты на кэш**: `internal/cache/cache.go` содержит нетривиальную логику (change-detection по ценам, обновление `bySport`), но покрыт тестами только маппер коллектора.

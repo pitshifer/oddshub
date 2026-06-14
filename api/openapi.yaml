@@ -13,8 +13,36 @@ servers:
 tags:
   - name: odds
     description: Получение и сбор котировок по видам спорта
+  - name: sports
+    description: Справочник видов спорта
 
 paths:
+  /sports:
+    get:
+      tags: [sports]
+      summary: Получить список видов спорта
+      description: |
+        Возвращает справочник видов спорта, ранее сохранённый в хранилище.
+      operationId: getSports
+      responses:
+        '200':
+          description: Список видов спорта
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sport'
+              example:
+                - key: "soccer_epl"
+                  title: "EPL"
+                  group: "Soccer"
+                  description: "English Premier League"
+                  active: true
+                  hasOutrights: false
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /sports/{sport}/odds:
     get:
       tags: [odds]
@@ -184,6 +212,41 @@ components:
           example: ok
       required:
         - status
+
+    Sport:
+      type: object
+      description: Вид спорта из справочника провайдера
+      properties:
+        key:
+          type: string
+          description: Ключ вида спорта в формате провайдера
+          example: "soccer_epl"
+        title:
+          type: string
+          description: Человекочитаемое название
+          example: "EPL"
+        group:
+          type: string
+          description: Группа/категория вида спорта
+          example: "Soccer"
+        description:
+          type: string
+          example: "English Premier League"
+        active:
+          type: boolean
+          description: Принимаются ли сейчас ставки на этот вид спорта
+          example: true
+        hasOutrights:
+          type: boolean
+          description: Доступны ли рынки на итоговый результат турнира (outrights)
+          example: false
+      required:
+        - key
+        - title
+        - group
+        - description
+        - active
+        - hasOutrights
 
   responses:
     InternalError:

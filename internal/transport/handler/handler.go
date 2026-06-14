@@ -27,12 +27,26 @@ func NewRouter(h *Handler) http.Handler {
 		r.Post("/collect-sports", h.CollectSports)
 
 		r.Route("/sports", func(r chi.Router) {
+			r.Get("/", h.GetSports)
 			r.Get("/{sport}/odds", h.GetOdds)
 			r.Post("/{sport}/collect", h.CollectOdds)
 		})
 	})
 
 	return r
+}
+
+func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
+	sports, err := h.storage.GetSports(r.Context())
+	if err != nil {
+		http.Error(w, "internal service error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(sports); err != nil {
+		http.Error(w, "internal service error", http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {

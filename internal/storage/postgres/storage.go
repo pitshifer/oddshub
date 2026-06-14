@@ -219,3 +219,27 @@ func (s *Storage) SaveSports(ctx context.Context, sports []service.Sport) error 
 
 	return nil
 }
+
+func (s *Storage) GetSports(ctx context.Context) ([]service.Sport, error) {
+	rows, err := s.pool.Query(ctx, `SELECT key, title, group_name, description, active, has_outrights FROM sports`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sports []service.Sport
+	for rows.Next() {
+		var sport service.Sport
+		err := rows.Scan(&sport.Key, &sport.Title, &sport.Group, &sport.Description, &sport.Active, &sport.HasOutrights)
+		if err != nil {
+			return nil, err
+		}
+		sports = append(sports, sport)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return sports, nil
+}

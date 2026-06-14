@@ -6,9 +6,10 @@ import (
 )
 
 type Storage interface {
-	SaveOdds(ctx context.Context, provider string, odds []EventOdds) error
-	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 	SaveSports(ctx context.Context, sports []Sport) error
+	SaveOdds(ctx context.Context, provider string, odds []EventOdds) error
+	GetSports(ctx context.Context) ([]Sport, error)
+	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 }
 
 type Odds interface {
@@ -18,12 +19,12 @@ type Odds interface {
 }
 
 type Sport struct {
-	Key          string
-	Title        string
-	Group        string
-	Description  string
-	Active       bool
-	HasOutrights bool
+	Key          string `json:"key"`
+	Title        string `json:"title"`
+	Group        string `json:"group"`
+	Description  string `json:"description"`
+	Active       bool   `json:"active"`
+	HasOutrights bool   `json:"hasOutrights"`
 }
 
 type Leagues struct {

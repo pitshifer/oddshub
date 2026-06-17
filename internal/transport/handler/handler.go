@@ -44,6 +44,7 @@ func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if err := json.NewEncoder(w).Encode(sports); err != nil {
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 	}
@@ -62,6 +63,7 @@ func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if err := json.NewEncoder(w).Encode(odds); err != nil {
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 	}
@@ -82,6 +84,7 @@ func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprint(w, `{"status":"ok"}`)
 }
 

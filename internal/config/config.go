@@ -8,6 +8,7 @@ import (
 type Config struct {
 	TheOddsApiKey string
 	DatabaseURL   string
+	LogLevel      string
 }
 
 func LoadConfig() (*Config, error) {
@@ -21,8 +22,14 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
 	}
 
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
 	return &Config{
 		TheOddsApiKey: theOddsApiKey,
 		DatabaseURL:   databaseURL,
+		LogLevel:      logLevel,
 	}, nil
 }

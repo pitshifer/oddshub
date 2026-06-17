@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,17 +13,22 @@ import (
 type Handler struct {
 	storage service.Storage
 	client  service.Odds
+	logger  *slog.Logger
 }
 
-func New(storage service.Storage, client service.Odds) *Handler {
+func New(storage service.Storage, client service.Odds, logger *slog.Logger) *Handler {
 	return &Handler{
 		storage: storage,
 		client:  client,
+		logger:  logger,
 	}
 }
 
 func NewRouter(h *Handler) http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(LoggerMiddleware(h.logger))
+
 	r.Route("/v1", func(r chi.Router) {
 		r.Post("/collect-sports", h.CollectSports)
 
@@ -39,6 +45,7 @@ func NewRouter(h *Handler) http.Handler {
 func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
 	sports, err := h.storage.GetSports(r.Context())
 	if err != nil {
+		h.logger.Error("Failed to get sports", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
@@ -46,6 +53,7 @@ func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if err := json.NewEncoder(w).Encode(sports); err != nil {
+		h.logger.Error("Failed to encode sports response", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 	}
 }
@@ -55,6 +63,7 @@ func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 
 	odds, err := h.storage.GetOdds(r.Context(), sport)
 	if err != nil {
+		h.logger.Error("Failed to get odds for sport", "sport", sport, "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
@@ -73,12 +82,14 @@ func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 	sport := chi.URLParam(r, "sport")
 	odds, err := h.client.GetOdds(r.Context(), sport)
 	if err != nil {
+		h.logger.Error("Failed to collect odds for sport", "sport", sport, "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
 
 	err = h.storage.SaveOdds(r.Context(), "theoddsapi", odds)
 	if err != nil {
+		h.logger.Error("Failed to save odds for sport", "sport", sport, "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
@@ -91,12 +102,14 @@ func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CollectSports(w http.ResponseWriter, r *http.Request) {
 	sports, err := h.client.GetSports(r.Context())
 	if err != nil {
+		h.logger.Error("Failed to collect sports", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
 
 	err = h.storage.SaveSports(r.Context(), sports)
 	if err != nil {
+		h.logger.Error("Failed to save sports", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}

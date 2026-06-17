@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/pitshifer/oddshub/internal/cache"
 	"github.com/pitshifer/oddshub/internal/collector/theoddsapi"
@@ -20,22 +22,34 @@ func main() {
 
 	ctx := context.Background()
 
-	storage, err := postgres.New(ctx, config.DatabaseURL)
+	var logLevel slog.Level
+	if err := logLevel.UnmarshalText([]byte(config.LogLevel)); err != nil {
+		logLevel = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+	slog.SetDefault(logger)
+
+	storage, err := postgres.New(ctx, config.DatabaseURL, logger)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("failed to initialize storage", "error", err)
+		os.Exit(1)
 	}
 	defer storage.Close()
 
 	cache := cache.New(storage)
 	if err := cache.Warm(ctx, []string{"soccer_epl"}); err != nil {
-		log.Fatal(err)
+		logger.Error("failed to warm cache", "error", err)
+		os.Exit(1)
 	}
 
 	client := theoddsapi.NewClient(config.TheOddsApiKey)
 
-	httpHandler := handler.New(cache, client)
+	httpHandler := handler.New(cache, client, logger)
 	router := handler.NewRouter(httpHandler)
 	if err = http.ListenAndServe(":8080", router); err != nil {
-		log.Fatal(err)
+		logger.Error("failed to start server", "error", err)
+		os.Exit(1)
 	}
 }

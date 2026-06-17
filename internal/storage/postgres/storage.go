@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,10 +11,11 @@ import (
 )
 
 type Storage struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
-func New(ctx context.Context, connStr string) (*Storage, error) {
+func New(ctx context.Context, connStr string, logger *slog.Logger) (*Storage, error) {
 	var pool *pgxpool.Pool
 	var err error
 
@@ -26,7 +27,7 @@ func New(ctx context.Context, connStr string) (*Storage, error) {
 			}
 		}
 		pool.Close()
-		log.Printf("Attempt %d: Failed to connect to database: %v", attempt, err)
+		logger.Error("Attempt %d: Failed to connect to database: %v", attempt, err)
 		time.Sleep(time.Duration(attempt) * 2 * time.Second)
 	}
 
@@ -35,7 +36,8 @@ func New(ctx context.Context, connStr string) (*Storage, error) {
 	}
 
 	return &Storage{
-		pool: pool,
+		pool:   pool,
+		logger: logger,
 	}, nil
 }
 

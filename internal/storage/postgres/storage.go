@@ -27,7 +27,7 @@ func New(ctx context.Context, connStr string, logger *slog.Logger) (*Storage, er
 			}
 		}
 		pool.Close()
-		logger.Error("Attempt %d: Failed to connect to database: %v", attempt, err)
+		logger.Error("failed to connect to database", "attempts", attempt, "error", err)
 		time.Sleep(time.Duration(attempt) * 2 * time.Second)
 	}
 
@@ -62,19 +62,40 @@ func (s *Storage) SaveOdds(ctx context.Context, provider string, odds []service.
 		return err
 	}
 
+	sports := make(map[string]int)
+	rows, err := tx.Query(ctx, `SELECT id, key FROM sports`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var key string
+		if err := rows.Scan(&id, &key); err != nil {
+			return err
+		}
+		sports[key] = id
+	}
+
 	// Upsert events
 	var eventID int
 	for _, event := range odds {
+		sportID, ok := sports[event.Sport]
+		if !ok {
+			s.logger.Warn("sport not found in database", "sport", event.Sport, "event_id", event.EventID)
+			continue
+		}
 		err := tx.QueryRow(ctx,
-			`INSERT INTO events(external_id, provider_id, sport, home_team, away_team, start_time)
+			`INSERT INTO events(external_id, provider_id, sport_id, home_team, away_team, start_time)
 			VALUES($1, $2, $3, $4, $5, $6)
 			ON CONFLICT(external_id, provider_id) DO UPDATE SET
-				sport = EXCLUDED.sport,
+				sport_id = EXCLUDED.sport_id,
 				home_team = EXCLUDED.home_team,
 				away_team = EXCLUDED.away_team,
 				start_time = EXCLUDED.start_time
 			RETURNING id`,
-			event.EventID, providerID, event.Sport, event.HomeTeam, event.AwayTeam, event.StartTime,
+			event.EventID, providerID, sportID, event.HomeTeam, event.AwayTeam, event.StartTime,
 		).Scan(&eventID)
 		if err != nil {
 			return err
@@ -120,11 +141,12 @@ func (s *Storage) SaveOdds(ctx context.Context, provider string, odds []service.
 
 func (s *Storage) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT e.external_id, e.sport, e.home_team, e.away_team, e.start_time, b.key, o.market, o.outcome, o.price
+		`SELECT e.external_id, s.key, e.home_team, e.away_team, e.start_time, b.key, o.market, o.outcome, o.price
 		FROM events e
 		JOIN odds o ON e.id = o.event_id
 		JOIN bookmakers b ON o.bookmaker_id = b.id
-		WHERE e.sport = $1
+		JOIN sports s ON e.sport_id = s.id
+		WHERE s.key = $1
 		ORDER BY e.id, b.key, o.market`,
 		sport,
 	)

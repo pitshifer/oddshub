@@ -31,7 +31,7 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	storage, err := postgres.New(ctx, config.DatabaseURL, logger)
+	storage, err := postgres.New(ctx, config.DatabaseURL, logger, config.OddsWay)
 	if err != nil {
 		logger.Error("failed to initialize storage", "error", err)
 		os.Exit(1)

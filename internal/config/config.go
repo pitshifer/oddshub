@@ -9,6 +9,8 @@ type Config struct {
 	TheOddsApiKey string
 	DatabaseURL   string
 	LogLevel      string
+
+	OddsWay string
 }
 
 func LoadConfig() (*Config, error) {
@@ -27,9 +29,15 @@ func LoadConfig() (*Config, error) {
 		logLevel = "info"
 	}
 
+	oddsWay := os.Getenv("ODDS_WAY")
+	if oddsWay == "" {
+		oddsWay = "legacy"
+	}
+
 	return &Config{
 		TheOddsApiKey: theOddsApiKey,
 		DatabaseURL:   databaseURL,
 		LogLevel:      logLevel,
+		OddsWay:       oddsWay,
 	}, nil
 }

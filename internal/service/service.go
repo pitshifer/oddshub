@@ -7,14 +7,14 @@ import (
 
 type Storage interface {
 	SaveSports(ctx context.Context, sports []Sport) error
-	SaveOdds(ctx context.Context, provider string, odds []EventOdds) error
 	GetSports(ctx context.Context) ([]Sport, error)
+
+	SaveOdds(ctx context.Context, provider string, odds []EventOdds) error
 	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 }
 
 type Odds interface {
 	GetSports(ctx context.Context) ([]Sport, error)
-	// GetLeagues(ctx context.Context, sport string) ([]Leagues, error)
 	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 }
 

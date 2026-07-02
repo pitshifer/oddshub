@@ -12,6 +12,8 @@
 - [ ] **Graceful shutdown** в `cmd/api/main.go`: сейчас `http.ListenAndServe` обрывает соединения при `SIGTERM`, и `defer storage.Close()` не выполняется. Добавить `signal.NotifyContext` + `http.Server.Shutdown(ctx)`.
 - [ ] **Тесты на кэш**: `internal/cache/cache.go` содержит нетривиальную логику (change-detection по ценам, обновление `bySport`), но покрыт тестами только маппер коллектора.
 
+- [ ] **`sportsCache` с lazy load + refresh on miss** (`internal/storage/postgres`): вместо того чтобы при каждом `SaveOdds` ходить в БД за таблицей `sports`, держать её in-memory. При первом обращении и при промахе по ключу — обновлять кэш из БД. Использовать `sync.RWMutex` с double-checked locking для безопасности при конкурентных запросах.
+
 ## На будущее / при росте проекта
 
 - [ ] **Неограниченный рост `c.prices`** в кэше: карта копит запись на каждую комбинацию `event:bookmaker:market:outcome` и никогда не чистится. При расширении на больше лиг/спортов это станет утечкой памяти — нужна инвалидация (например, по `start_time` прошедших событий).

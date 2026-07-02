@@ -25,7 +25,10 @@ func (s *legacyOddsStrategy) SaveOdds(ctx context.Context, provider string, odds
 	// Upsert provider
 	var providerID int
 	err = tx.QueryRow(ctx,
-		"INSERT INTO providers (key, name) VALUES ($1, $1) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key RETURNING id",
+		`INSERT INTO providers (key, name) VALUES ($1, $1)
+		ON CONFLICT (key) DO UPDATE SET
+			key = EXCLUDED.key
+		RETURNING id`,
 		provider,
 	).Scan(&providerID)
 	if err != nil {

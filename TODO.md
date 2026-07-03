@@ -4,6 +4,10 @@
 
 ## Стоит сделать в ближайшее время
 
+- [ ] **Application layer** (`internal/application/`): вынести бизнес-логику из хендлеров в use case-объекты (`CollectOddsUseCase`, `GetOddsUseCase`, `CollectSportsUseCase`, `GetSportsUseCase`). Хендлер должен только принять HTTP-запрос, вызвать use case и отдать ответ — без прямых обращений к `storage` и `collector`. Это также даст возможность покрывать логику тестами без HTTP-слоя.
+
+- [ ] **Канонический словарь домена + Anti-Corruption Layer** (`internal/service/`): определить собственные коды для типов рынков (`"match_result"`, `"handicap"`, `"total_goals"`), видов спорта и других провайдер-специфичных строк. Маппер каждого провайдера (`collector/<provider>/mapper.go`) должен нормализовать значения к этим кодам — это исключит расхождение идентификаторов в БД при добавлении второго провайдера.
+
 - [ ] **Новый API метод** (`/v1/sports/{sport}/events`): вывод всех событий.
 
 - [ ] **API** (`/v1/sports/{sport}/events/{eventID}`): информация с котировками по конкретному событию.

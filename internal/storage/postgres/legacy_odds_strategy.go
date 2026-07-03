@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 type legacyOddsStrategy struct {
@@ -15,7 +15,7 @@ type legacyOddsStrategy struct {
 	logger *slog.Logger
 }
 
-func (s *legacyOddsStrategy) SaveOdds(ctx context.Context, provider string, odds []service.EventOdds) error {
+func (s *legacyOddsStrategy) SaveOdds(ctx context.Context, provider string, odds []domain.EventOdds) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (s *legacyOddsStrategy) SaveOdds(ctx context.Context, provider string, odds
 	return nil
 }
 
-func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
+func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT e.external_id, s.key, e.home_team, e.away_team, e.start_time, b.key, o.market, o.outcome, o.price
 		FROM events e
@@ -131,7 +131,7 @@ func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]servi
 	}
 	defer rows.Close()
 
-	var result []service.EventOdds
+	var result []domain.EventOdds
 	eventsMap := make(map[string]int)
 	bookmakerMap := make(map[string]int)
 	marketMap := make(map[string]int)
@@ -151,7 +151,7 @@ func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]servi
 
 		ei, ok := eventsMap[eventID]
 		if !ok {
-			eventOdds := service.EventOdds{
+			eventOdds := domain.EventOdds{
 				EventID:   eventID,
 				Sport:     sport,
 				HomeTeam:  homeTeam,
@@ -166,7 +166,7 @@ func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]servi
 		bmKey := fmt.Sprintf("%s-%s", eventID, bookmaker)
 		bi, ok := bookmakerMap[bmKey]
 		if !ok {
-			bookmakerOdds := service.Bookmaker{
+			bookmakerOdds := domain.Bookmaker{
 				Name: bookmaker,
 			}
 			result[ei].Bookmakers = append(result[ei].Bookmakers, bookmakerOdds)
@@ -177,7 +177,7 @@ func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]servi
 		mKey := fmt.Sprintf("%s-%s", bmKey, market)
 		mi, ok := marketMap[mKey]
 		if !ok {
-			marketOdds := service.Market{
+			marketOdds := domain.Market{
 				Type: market,
 			}
 			result[ei].Bookmakers[bi].Markets = append(result[ei].Bookmakers[bi].Markets, marketOdds)
@@ -185,7 +185,7 @@ func (s *legacyOddsStrategy) GetOdds(ctx context.Context, sport string) ([]servi
 			marketMap[mKey] = mi
 		}
 
-		outcomeOdds := service.Outcome{
+		outcomeOdds := domain.Outcome{
 			Name:  outcome,
 			Price: price,
 		}

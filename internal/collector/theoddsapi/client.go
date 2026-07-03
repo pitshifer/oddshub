@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 type Client struct {
@@ -26,7 +26,7 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-func (c *Client) GetSports(ctx context.Context) ([]service.Sport, error) {
+func (c *Client) GetSports(ctx context.Context) ([]domain.Sport, error) {
 	url := fmt.Sprintf("%s/sports?apiKey=%s", c.baseURL, c.apiKey)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -51,7 +51,7 @@ func (c *Client) GetSports(ctx context.Context) ([]service.Sport, error) {
 	return mapSportsToDomain(dto), nil
 }
 
-func (c *Client) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
+func (c *Client) GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error) {
 	url := fmt.Sprintf("%s/sports/%s/odds?apiKey=%s&regions=eu&markets=h2h", c.baseURL, sport, c.apiKey)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

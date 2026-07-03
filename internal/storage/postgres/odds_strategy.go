@@ -3,10 +3,10 @@ package postgres
 import (
 	"context"
 
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 type oddsStrategy interface {
-	SaveOdds(ctx context.Context, provider string, odds []service.EventOdds) error
-	GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error)
+	SaveOdds(ctx context.Context, provider string, odds []domain.EventOdds) error
+	GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error)
 }

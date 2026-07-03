@@ -5,26 +5,26 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 type Cache struct {
 	mu      sync.RWMutex
-	storage service.Storage
+	storage domain.Storage
 
-	bySport map[string][]service.EventOdds
+	bySport map[string][]domain.EventOdds
 	prices  map[string]float64
 }
 
-func New(storage service.Storage) *Cache {
+func New(storage domain.Storage) *Cache {
 	return &Cache{
 		storage: storage,
-		bySport: make(map[string][]service.EventOdds),
+		bySport: make(map[string][]domain.EventOdds),
 		prices:  make(map[string]float64),
 	}
 }
 
-func (c *Cache) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
+func (c *Cache) GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error) {
 	c.mu.RLock()
 	odds, ok := c.bySport[sport]
 	c.mu.RUnlock()
@@ -46,9 +46,9 @@ func (c *Cache) GetOdds(ctx context.Context, sport string) ([]service.EventOdds,
 	return odds, nil
 }
 
-func (c *Cache) SaveOdds(ctx context.Context, provider string, odds []service.EventOdds) error {
+func (c *Cache) SaveOdds(ctx context.Context, provider string, odds []domain.EventOdds) error {
 	c.mu.RLock()
-	changeSet := make(map[string]service.EventOdds)
+	changeSet := make(map[string]domain.EventOdds)
 	for _, event := range odds {
 		for _, bm := range event.Bookmakers {
 			for _, market := range bm.Markets {
@@ -68,7 +68,7 @@ func (c *Cache) SaveOdds(ctx context.Context, provider string, odds []service.Ev
 	}
 
 	// save to storage (DB)
-	changes := make([]service.EventOdds, 0, len(changeSet))
+	changes := make([]domain.EventOdds, 0, len(changeSet))
 	for _, event := range changeSet {
 		changes = append(changes, event)
 	}
@@ -93,15 +93,15 @@ func (c *Cache) SaveOdds(ctx context.Context, provider string, odds []service.Ev
 	return nil
 }
 
-func (c *Cache) SaveSports(ctx context.Context, sports []service.Sport) error {
+func (c *Cache) SaveSports(ctx context.Context, sports []domain.Sport) error {
 	return c.storage.SaveSports(ctx, sports)
 }
 
-func (c *Cache) GetSports(ctx context.Context) ([]service.Sport, error) {
+func (c *Cache) GetSports(ctx context.Context) ([]domain.Sport, error) {
 	return c.storage.GetSports(ctx)
 }
 
-func updateEvents(events []service.EventOdds, updated service.EventOdds) []service.EventOdds {
+func updateEvents(events []domain.EventOdds, updated domain.EventOdds) []domain.EventOdds {
 	for i, e := range events {
 		if e.EventID == updated.EventID {
 			events[i] = updated
@@ -112,7 +112,7 @@ func updateEvents(events []service.EventOdds, updated service.EventOdds) []servi
 }
 
 func (c *Cache) Warm(ctx context.Context, sports []string) error {
-	bySport := make(map[string][]service.EventOdds)
+	bySport := make(map[string][]domain.EventOdds)
 	prices := make(map[string]float64)
 
 	for _, sport := range sports {

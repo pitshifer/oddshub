@@ -1,4 +1,4 @@
-package service
+package domain
 
 import (
 	"context"
@@ -25,11 +25,6 @@ type Sport struct {
 	Description  string `json:"description"`
 	Active       bool   `json:"active"`
 	HasOutrights bool   `json:"hasOutrights"`
-}
-
-type Leagues struct {
-	ID   int
-	Name string
 }
 
 type EventOdds struct {

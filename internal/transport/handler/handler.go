@@ -1,26 +1,34 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
-type Handler struct {
-	storage service.Storage
-	client  service.Odds
-	logger  *slog.Logger
+type OddsCollector interface {
+	Collect(ctx context.Context, sport string) error
 }
 
-func New(storage service.Storage, client service.Odds, logger *slog.Logger) *Handler {
+type Handler struct {
+	storage       domain.Storage
+	client        domain.Odds
+	oddsCollector OddsCollector
+
+	logger *slog.Logger
+}
+
+func New(storage domain.Storage, client domain.Odds, oddsCollector OddsCollector, logger *slog.Logger) *Handler {
 	return &Handler{
-		storage: storage,
-		client:  client,
-		logger:  logger,
+		storage:       storage,
+		client:        client,
+		oddsCollector: oddsCollector,
+		logger:        logger,
 	}
 }
 
@@ -68,7 +76,7 @@ func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if odds == nil {
-		odds = []service.EventOdds{}
+		odds = []domain.EventOdds{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -80,16 +88,8 @@ func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 	sport := chi.URLParam(r, "sport")
-	odds, err := h.client.GetOdds(r.Context(), sport)
+	err := h.oddsCollector.Collect(r.Context(), sport)
 	if err != nil {
-		h.logger.Error("Failed to collect odds for sport", "sport", sport, "error", err)
-		http.Error(w, "internal service error", http.StatusInternalServerError)
-		return
-	}
-
-	err = h.storage.SaveOdds(r.Context(), "theoddsapi", odds)
-	if err != nil {
-		h.logger.Error("Failed to save odds for sport", "sport", sport, "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}

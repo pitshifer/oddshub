@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 type lineOddsStrategy struct {
@@ -15,7 +15,7 @@ type lineOddsStrategy struct {
 	logger *slog.Logger
 }
 
-func (s *lineOddsStrategy) SaveOdds(ctx context.Context, provider string, odds []service.EventOdds) error {
+func (s *lineOddsStrategy) SaveOdds(ctx context.Context, provider string, odds []domain.EventOdds) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (s *lineOddsStrategy) SaveOdds(ctx context.Context, provider string, odds [
 	return nil
 }
 
-func (s *lineOddsStrategy) GetOdds(ctx context.Context, sport string) ([]service.EventOdds, error) {
+func (s *lineOddsStrategy) GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error) {
 	// Implementation for getting line odds
 	return nil, nil
 }

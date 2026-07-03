@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/pitshifer/oddshub/internal/application"
 	"github.com/pitshifer/oddshub/internal/cache"
 	"github.com/pitshifer/oddshub/internal/collector/theoddsapi"
 	"github.com/pitshifer/oddshub/internal/config"
@@ -46,7 +47,9 @@ func main() {
 
 	client := theoddsapi.NewClient(config.TheOddsApiKey)
 
-	httpHandler := handler.New(cache, client, logger)
+	oddsService := application.NewOddsService(cache, client, logger)
+
+	httpHandler := handler.New(cache, client, oddsService, logger)
 	router := handler.NewRouter(httpHandler)
 	if err = http.ListenAndServe(":8080", router); err != nil {
 		logger.Error("failed to start server", "error", err)

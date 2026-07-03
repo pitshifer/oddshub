@@ -3,15 +3,15 @@ package theoddsapi
 import (
 	"time"
 
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
-func mapOddsToDomain(dto []OddsResponse) []service.EventOdds {
-	var result []service.EventOdds
+func mapOddsToDomain(dto []OddsResponse) []domain.EventOdds {
+	var result []domain.EventOdds
 
 	for _, e := range dto {
 		startTime, _ := time.Parse(time.RFC3339, e.Commence)
-		event := service.EventOdds{
+		event := domain.EventOdds{
 			EventID:   e.ID,
 			Sport:     e.SportKey,
 			HomeTeam:  e.HomeTeam,
@@ -20,17 +20,17 @@ func mapOddsToDomain(dto []OddsResponse) []service.EventOdds {
 		}
 
 		for _, bm := range e.Bookmakers {
-			bookmaker := service.Bookmaker{
+			bookmaker := domain.Bookmaker{
 				Name: bm.Key,
 			}
 
 			for _, m := range bm.Markets {
-				market := service.Market{
+				market := domain.Market{
 					Type: m.Key,
 				}
 
 				for _, o := range m.Outcomes {
-					market.Outcomes = append(market.Outcomes, service.Outcome{
+					market.Outcomes = append(market.Outcomes, domain.Outcome{
 						Name:  o.Name,
 						Price: o.Price,
 					})
@@ -48,11 +48,11 @@ func mapOddsToDomain(dto []OddsResponse) []service.EventOdds {
 	return result
 }
 
-func mapSportsToDomain(dto []SportsResponse) []service.Sport {
-	var result []service.Sport
+func mapSportsToDomain(dto []SportsResponse) []domain.Sport {
+	var result []domain.Sport
 
 	for _, s := range dto {
-		sport := service.Sport{
+		sport := domain.Sport{
 			Key:          s.Key,
 			Title:        s.Title,
 			Group:        s.Group,

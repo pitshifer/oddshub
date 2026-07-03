@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pitshifer/oddshub/internal/service"
+	"github.com/pitshifer/oddshub/internal/domain"
 )
 
 func TestMapToDomain(t *testing.T) {
 	tests := []struct {
 		name  string
 		input []OddsResponse
-		want  []service.EventOdds
+		want  []domain.EventOdds
 	}{
 		{
 			name:  "empty input returns empty result",
@@ -29,7 +29,7 @@ func TestMapToDomain(t *testing.T) {
 					Commence: "2024-01-15T15:00:00Z",
 				},
 			},
-			want: []service.EventOdds{
+			want: []domain.EventOdds{
 				{
 					EventID:   "event-1",
 					Sport:     "soccer_epl",
@@ -83,20 +83,20 @@ func TestMapToDomain(t *testing.T) {
 					},
 				},
 			},
-			want: []service.EventOdds{
+			want: []domain.EventOdds{
 				{
 					EventID:   "event-2",
 					Sport:     "soccer_epl",
 					HomeTeam:  "Liverpool",
 					AwayTeam:  "Man City",
 					StartTime: time.Date(2024, 1, 20, 17, 30, 0, 0, time.UTC),
-					Bookmakers: []service.Bookmaker{
+					Bookmakers: []domain.Bookmaker{
 						{
 							Name: "betway",
-							Markets: []service.Market{
+							Markets: []domain.Market{
 								{
 									Type: "h2h",
-									Outcomes: []service.Outcome{
+									Outcomes: []domain.Outcome{
 										{Name: "Liverpool", Price: 2.10},
 										{Name: "Man City", Price: 3.50},
 										{Name: "Draw", Price: 3.20},
@@ -119,7 +119,7 @@ func TestMapToDomain(t *testing.T) {
 					Commence: "не-валидная-дата",
 				},
 			},
-			want: []service.EventOdds{
+			want: []domain.EventOdds{
 				{
 					EventID:   "event-3",
 					Sport:     "soccer_epl",
@@ -149,7 +149,7 @@ func TestMapToDomain(t *testing.T) {
 }
 
 // assertEventOdds — вспомогательная функция сравнения.
-func assertEventOdds(t *testing.T, got, want service.EventOdds) {
+func assertEventOdds(t *testing.T, got, want domain.EventOdds) {
 	t.Helper()
 
 	if got.EventID != want.EventID {
@@ -176,7 +176,7 @@ func assertEventOdds(t *testing.T, got, want service.EventOdds) {
 	}
 }
 
-func assertBookmaker(t *testing.T, got, want service.Bookmaker) {
+func assertBookmaker(t *testing.T, got, want domain.Bookmaker) {
 	t.Helper()
 
 	if got.Name != want.Name {
@@ -190,7 +190,7 @@ func assertBookmaker(t *testing.T, got, want service.Bookmaker) {
 	}
 }
 
-func assertMarket(t *testing.T, got, want service.Market) {
+func assertMarket(t *testing.T, got, want domain.Market) {
 	t.Helper()
 
 	if got.Type != want.Type {

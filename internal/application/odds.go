@@ -36,3 +36,12 @@ func (o *OddsService) Collect(ctx context.Context, sport string) error {
 
 	return nil
 }
+
+func (o *OddsService) GetOdds(ctx context.Context, sport string) []domain.EventOdds {
+	odds, err := o.storage.GetOdds(ctx, sport)
+	if err != nil {
+		o.logger.Error("Failed to get odds for sport", "sport", sport, "error", err)
+	}
+
+	return odds
+}

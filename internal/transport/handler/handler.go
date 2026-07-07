@@ -13,6 +13,7 @@ import (
 
 type OddsCollector interface {
 	Collect(ctx context.Context, sport string) error
+	GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error)
 }
 
 type Handler struct {
@@ -69,9 +70,8 @@ func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 	sport := chi.URLParam(r, "sport")
 
-	odds, err := h.storage.GetOdds(r.Context(), sport)
+	odds, err := h.oddsCollector.GetOdds(r.Context(), sport)
 	if err != nil {
-		h.logger.Error("Failed to get odds for sport", "sport", sport, "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}

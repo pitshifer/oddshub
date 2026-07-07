@@ -13,7 +13,7 @@ type Storage interface {
 	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 }
 
-type Odds interface {
+type OddsProvider interface {
 	GetSports(ctx context.Context) ([]Sport, error)
 	GetOdds(ctx context.Context, sport string) ([]EventOdds, error)
 }

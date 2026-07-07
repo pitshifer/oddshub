@@ -8,12 +8,12 @@ import (
 )
 
 type OddsService struct {
-	client  domain.Odds
+	client  domain.OddsProvider
 	storage domain.Storage
 	logger  *slog.Logger
 }
 
-func NewOddsService(storage domain.Storage, client domain.Odds, logger *slog.Logger) *OddsService {
+func NewOddsService(storage domain.Storage, client domain.OddsProvider, logger *slog.Logger) *OddsService {
 	return &OddsService{
 		storage: storage,
 		client:  client,

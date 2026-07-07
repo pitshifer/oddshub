@@ -21,7 +21,7 @@ func NewOddsService(storage domain.Storage, client domain.Odds, logger *slog.Log
 	}
 }
 
-func (o *OddsService) Collect(ctx context.Context, sport string) error {
+func (o *OddsService) CollectOdds(ctx context.Context, sport string) error {
 	odds, err := o.client.GetOdds(ctx, sport)
 	if err != nil {
 		o.logger.Error("Failed to collect odds for sport", "sport", sport, "error", err)

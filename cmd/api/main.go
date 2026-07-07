@@ -48,8 +48,9 @@ func main() {
 	client := theoddsapi.NewClient(config.TheOddsApiKey)
 
 	oddsService := application.NewOddsService(cache, client, logger)
+	sportsService := application.NewSportsService(cache, client, logger)
 
-	httpHandler := handler.New(cache, client, oddsService, logger)
+	httpHandler := handler.New(oddsService, sportsService, logger)
 	router := handler.NewRouter(httpHandler)
 	if err = http.ListenAndServe(":8080", router); err != nil {
 		logger.Error("failed to start server", "error", err)

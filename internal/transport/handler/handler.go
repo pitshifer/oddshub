@@ -12,24 +12,27 @@ import (
 )
 
 type OddsCollector interface {
-	Collect(ctx context.Context, sport string) error
+	CollectOdds(ctx context.Context, sport string) error
 	GetOdds(ctx context.Context, sport string) ([]domain.EventOdds, error)
 }
 
+type SportsCollector interface {
+	CollectSports(ctx context.Context) error
+	GetSports(ctx context.Context) ([]domain.Sport, error)
+}
+
 type Handler struct {
-	storage       domain.Storage
-	client        domain.Odds
-	oddsCollector OddsCollector
+	oddsCollector   OddsCollector
+	sportsCollector SportsCollector
 
 	logger *slog.Logger
 }
 
-func New(storage domain.Storage, client domain.Odds, oddsCollector OddsCollector, logger *slog.Logger) *Handler {
+func New(oddsCollector OddsCollector, sportsCollector SportsCollector, logger *slog.Logger) *Handler {
 	return &Handler{
-		storage:       storage,
-		client:        client,
-		oddsCollector: oddsCollector,
-		logger:        logger,
+		oddsCollector:   oddsCollector,
+		sportsCollector: sportsCollector,
+		logger:          logger,
 	}
 }
 
@@ -52,9 +55,8 @@ func NewRouter(h *Handler) http.Handler {
 }
 
 func (h *Handler) GetSports(w http.ResponseWriter, r *http.Request) {
-	sports, err := h.storage.GetSports(r.Context())
+	sports, err := h.sportsCollector.GetSports(r.Context())
 	if err != nil {
-		h.logger.Error("Failed to get sports", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}
@@ -82,13 +84,14 @@ func (h *Handler) GetOdds(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if err := json.NewEncoder(w).Encode(odds); err != nil {
+		h.logger.Error("Failed to encode odds response", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 	}
 }
 
 func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 	sport := chi.URLParam(r, "sport")
-	err := h.oddsCollector.Collect(r.Context(), sport)
+	err := h.oddsCollector.CollectOdds(r.Context(), sport)
 	if err != nil {
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
@@ -100,16 +103,8 @@ func (h *Handler) CollectOdds(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CollectSports(w http.ResponseWriter, r *http.Request) {
-	sports, err := h.client.GetSports(r.Context())
+	err := h.sportsCollector.CollectSports(r.Context())
 	if err != nil {
-		h.logger.Error("Failed to collect sports", "error", err)
-		http.Error(w, "internal service error", http.StatusInternalServerError)
-		return
-	}
-
-	err = h.storage.SaveSports(r.Context(), sports)
-	if err != nil {
-		h.logger.Error("Failed to save sports", "error", err)
 		http.Error(w, "internal service error", http.StatusInternalServerError)
 		return
 	}

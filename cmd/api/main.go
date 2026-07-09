@@ -6,6 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/pitshifer/oddshub/internal/application"
 	"github.com/pitshifer/oddshub/internal/cache"
@@ -13,6 +16,7 @@ import (
 	"github.com/pitshifer/oddshub/internal/config"
 	"github.com/pitshifer/oddshub/internal/storage/postgres"
 	"github.com/pitshifer/oddshub/internal/transport/handler"
+	"github.com/pitshifer/oddshub/internal/worker"
 )
 
 func main() {
@@ -21,7 +25,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	var logLevel slog.Level
 	if err := logLevel.UnmarshalText([]byte(config.LogLevel)); err != nil {
@@ -49,6 +54,10 @@ func main() {
 
 	oddsService := application.NewOddsService(cache, client, logger)
 	sportsService := application.NewSportsService(cache, client, logger)
+
+	sports := []string{"soccer_epl", "soccer_fifa_world_cup"}
+	w := worker.NewWorker(oddsService, 5*time.Minute, sports, logger)
+	go w.Run(ctx)
 
 	httpHandler := handler.New(oddsService, sportsService, logger)
 	router := handler.NewRouter(httpHandler)

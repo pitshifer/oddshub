@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"log/slog"
 	"net/http"
@@ -61,8 +62,25 @@ func main() {
 
 	httpHandler := handler.New(oddsService, sportsService, logger)
 	router := handler.NewRouter(httpHandler)
-	if err = http.ListenAndServe(":8080", router); err != nil {
-		logger.Error("failed to start server", "error", err)
-		os.Exit(1)
+
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("failed to start server", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Info("shutting down server")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Error("failed to shutdown server", "error", err)
 	}
 }
